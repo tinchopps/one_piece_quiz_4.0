@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -228,19 +229,45 @@ export default function QuizScreen() {
     answerQuestion(result);
     setShowResult(true);
 
-    // 🆕 MOSTRAR FEEDBACK DESPUÉS DE MOSTRAR RESULTADO
-    setTimeout(() => {
-      // Configurar datos para feedback
-      setCurrentFeedbackData({
-        question: currentQuestion,
-        userAnswer: answer || 'Sin respuesta',
-        correctAnswer: currentQuestion.correct_answer,
-        isCorrect,
-      });
-      
-      // Mostrar overlay de feedback
-      setShowFeedback(true);
-    }, 2000); // Esperar 2 segundos después del resultado
+  // 🆕 MOSTRAR FEEDBACK SOLO SI ESTÁ ACTIVADO EN CONFIGURACIÓN
+  setTimeout(async () => {
+    try {
+      const value = await AsyncStorage.getItem('feedback_enabled');
+      if (value === 'true') {
+        setCurrentFeedbackData({
+          question: currentQuestion,
+          userAnswer: answer || 'Sin respuesta',
+          correctAnswer: currentQuestion.correct_answer,
+          isCorrect,
+        });
+        setShowFeedback(true);
+      } else {
+        // Si no está activado, continuar flujo normal
+        if (currentGame && currentGame.currentQuestionIndex + 1 >= questions.length) {
+          finishQuiz();
+        } else {
+          animateQuestionTransition();
+          nextQuestion();
+          setShowResult(false);
+          setSelectedAnswer('');
+          setTimeLeft(30);
+          setQuestionStartTime(Date.now());
+        }
+      }
+    } catch (e) {
+      // Si hay error, por defecto NO mostrar feedback
+      if (currentGame && currentGame.currentQuestionIndex + 1 >= questions.length) {
+        finishQuiz();
+      } else {
+        animateQuestionTransition();
+        nextQuestion();
+        setShowResult(false);
+        setSelectedAnswer('');
+        setTimeLeft(30);
+        setQuestionStartTime(Date.now());
+      }
+    }
+  }, 2000); // Esperar 2 segundos después del resultado
   };
 
   // 🆕 FUNCIÓN PARA MANEJAR CUANDO SE COMPLETA EL FEEDBACK

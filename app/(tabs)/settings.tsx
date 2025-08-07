@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   View,
   Text,
@@ -6,20 +7,47 @@ import {
   ScrollView,
   SafeAreaView,
   Alert,
+  Switch,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { Colors } from '@/constants/colors';
 import { Button } from '@/components/ui/Button';
+import { useAuth } from '@/context/AuthContext';
+import { useRouter } from 'expo-router';
 import { Card } from '@/components/ui/Card';
 import { FeedbackViewer } from '@/components/FeedbackViewer';
 import { useGame } from '@/context/GameContext';
 import { StorageService } from '@/services/storage';
 import { SAGAS } from '@/constants/sagas';
 
+
+import { ActivityIndicator } from 'react-native';
+
 export default function SettingsScreen() {
   const gameContext = useGame();
   const [showFeedbackViewer, setShowFeedbackViewer] = useState(false);
+  const [feedbackEnabled, setFeedbackEnabled] = useState(false);
+  const { user, logout, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const value = await AsyncStorage.getItem('feedback_enabled');
+        setFeedbackEnabled(value === 'true');
+      } catch (e) {
+        setFeedbackEnabled(false);
+      }
+    })();
+  }, []);
+
+  const handleToggleFeedback = async (value: boolean) => {
+    setFeedbackEnabled(value);
+    try {
+      await AsyncStorage.setItem('feedback_enabled', value ? 'true' : 'false');
+    } catch (e) {}
+  };
 
   const handleResetProgress = () => {
     Alert.alert(
@@ -48,9 +76,25 @@ export default function SettingsScreen() {
   };
 
   const handleViewRawData = async () => {
-    console.log('� Botón Ver Feedbacks presionado - Abriendo visualizador completo');
     setShowFeedbackViewer(true);
   };
+
+  const handleLoginPress = () => {
+    router.push('/login');
+  };
+
+  const handleLogoutPress = async () => {
+    await logout();
+    router.replace('/');
+  };
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#181A20' }}>
+        <ActivityIndicator size="large" color="#fff" />
+      </View>
+    );
+  }
 
   return (
     <LinearGradient colors={['#1e3a8a', '#3b82f6']} style={styles.container}>
@@ -82,6 +126,15 @@ export default function SettingsScreen() {
           {/* Game Settings */}
           <Card>
             <Text style={styles.cardTitle}>Configuración del Juego</Text>
+            <View style={styles.switchRow}>
+              <Text style={styles.switchLabel}>Activar feedback después de cada pregunta</Text>
+              <Switch
+                value={feedbackEnabled}
+                onValueChange={handleToggleFeedback}
+                trackColor={{ false: '#767577', true: Colors.primary }}
+                thumbColor={feedbackEnabled ? Colors.secondary : '#f4f3f4'}
+              />
+            </View>
             <Text style={styles.sectionDescription}>
               Próximamente: configuración de sonido, vibraciones y otros ajustes
             </Text>
@@ -120,6 +173,43 @@ export default function SettingsScreen() {
             </View>
           </Card>
 
+          {/* Auth Section */}
+          <Card>
+            <Text style={styles.cardTitle}>Cuenta</Text>
+            {user ? (
+              <>
+                <Text style={styles.sectionDescription}>
+                  Sesión iniciada como: <Text style={{ fontWeight: 'bold' }}>{user.email}</Text>
+                </Text>
+                {/* Botón solo visible para admin */}
+                {user.role === 'admin' && (
+                  <Button
+                    title="Panel de Admin"
+                    onPress={() => router.push('/admin')}
+                    variant="success"
+                    size="medium"
+                    style={{ marginBottom: 12 }}
+                  />
+                )}
+                <Button
+                  title={loading ? 'Cerrando sesión...' : 'Cerrar sesión'}
+                  onPress={handleLogoutPress}
+                  variant="secondary"
+                  size="medium"
+                  disabled={loading}
+                />
+              </>
+            ) : (
+              <Button
+                title="Iniciar sesión de admin"
+                onPress={handleLoginPress}
+                variant="primary"
+                size="medium"
+                disabled={loading}
+              />
+            )}
+          </Card>
+
           {/* About */}
           <Card>
             <Text style={styles.cardTitle}>Acerca de One Piece</Text>
@@ -152,6 +242,18 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
+  switchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  switchLabel: {
+    fontSize: 16,
+    color: Colors.text.primary,
+    flex: 1,
+    marginRight: 12,
+  },
   container: {
     flex: 1,
   },

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { SagaProgress, GameStats, GameState, QuizResult } from '@/types/game';
 import { StorageService } from '@/services/storage';
+import { SAGAS } from '@/constants/sagas';
 
 interface GameContextState {
   sagas: SagaProgress[];
@@ -20,7 +21,9 @@ interface GameContextActions {
   unlockNextSaga: (currentSagaId: string) => Promise<void>;
 }
 
-type GameContextType = GameContextState & GameContextActions;
+type GameContextType = GameContextState & GameContextActions & {
+  lastRoundAnswers: QuizResult[];
+};
 
 const GameContext = createContext<GameContextType | null>(null);
 
@@ -152,9 +155,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   };
 
   const unlockNextSaga = async (currentSagaId: string) => {
-    const sagaOrder = ['east-blue', 'alabasta', 'skypea'];
+    // Derivar el orden de desbloqueo desde SAGAS
+    const sagaOrder = SAGAS.map(s => s.id);
     const currentIndex = sagaOrder.indexOf(currentSagaId);
-    
     if (currentIndex >= 0 && currentIndex < sagaOrder.length - 1) {
       const nextSagaId = sagaOrder[currentIndex + 1];
       await updateSagaProgress(nextSagaId, { unlocked: true });
@@ -164,6 +167,19 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     loadData();
   }, []);
+
+  // Exponer las respuestas de la última ronda incluso después de endGame
+  const [lastRoundAnswers, setLastRoundAnswers] = React.useState<QuizResult[]>([]);
+
+  // Guardar las respuestas cuando termina el juego
+  useEffect(() => {
+    if (state.currentGame && state.currentGame.answers.length > 0) {
+      setLastRoundAnswers(state.currentGame.answers);
+    }
+    if (!state.currentGame) {
+      // Si el juego terminó, mantener las respuestas previas
+    }
+  }, [state.currentGame]);
 
   const contextValue: GameContextType = {
     ...state,
@@ -175,6 +191,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     nextQuestion,
     endGame,
     unlockNextSaga,
+    lastRoundAnswers,
   };
 
   return (

@@ -172,8 +172,8 @@ export default function ResultsScreen() {
               />
               
               <Button
-                title="Ir al inicio"
-                onPress={handleGoHome}
+                title="Resumen de preguntas y feedbacks"
+                onPress={() => router.push('/(tabs)/summary')}
                 variant="secondary"
                 size="medium"
                 style={styles.actionButton}

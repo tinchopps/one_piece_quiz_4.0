@@ -6,6 +6,7 @@ import { Inter_400Regular, Inter_600SemiBold, Inter_700Bold } from '@expo-google
 import * as SplashScreen from 'expo-splash-screen';
 
 import { GameProvider } from '@/context/GameContext';
+import { AuthProvider } from '@/context/AuthContext';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { APIWarmingService } from '@/services/apiWarming';
 
@@ -45,15 +46,19 @@ export default function RootLayout() {
   }
 
   return (
-    <GameProvider>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="free-mode" />
-        <Stack.Screen name="quiz" />
-        <Stack.Screen name="results" />
-        <Stack.Screen name="+not-found" />
-      </Stack>
-      <StatusBar style="light" />
-    </GameProvider>
+    <AuthProvider>
+      <GameProvider>
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="admin" />
+          <Stack.Screen name="login" />
+          <Stack.Screen name="free-mode" />
+          <Stack.Screen name="quiz" />
+          <Stack.Screen name="results" />
+          <Stack.Screen name="+not-found" />
+        </Stack>
+        <StatusBar style="light" />
+      </GameProvider>
+    </AuthProvider>
   );
 }

@@ -25,7 +25,8 @@ export default function FreeModeScreen() {
   const card3Anim = useRef(new Animated.Value(50)).current;
   const card4Anim = useRef(new Animated.Value(50)).current;
 
-  const unlockedSagas = sagas.filter(saga => saga.unlocked);
+  // Mostrar todas las sagas, no solo las desbloqueadas
+  const allSagas = sagas;
 
   useEffect(() => {
     // Iniciar animaciones al cargar
@@ -107,7 +108,7 @@ export default function FreeModeScreen() {
             <Card>
               <Text style={styles.sectionTitle}>Selecciona una Saga</Text>
               <View style={styles.optionsGrid}>
-                {unlockedSagas.map((saga) => (
+                {allSagas.map((saga) => (
                   <Button
                     key={saga.id}
                     title={`${SAGA_EMOJIS[saga.id] || '🌊'} ${saga.name}`}
@@ -183,7 +184,7 @@ export default function FreeModeScreen() {
               <Text style={styles.summaryTitle}>Resumen de tu partida:</Text>
               <View style={styles.summary}>
                 <Text style={styles.summaryText}>
-                  Saga: {selectedSaga ? unlockedSagas.find(s => s.id === selectedSaga)?.name : 'No seleccionada'}
+                  Saga: {selectedSaga ? allSagas.find(s => s.id === selectedSaga)?.name : 'No seleccionada'}
                 </Text>
                 <Text style={styles.summaryText}>
                   Preguntas: {selectedAmount}

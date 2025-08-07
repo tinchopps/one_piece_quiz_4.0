@@ -33,3 +33,29 @@ yarn-error.*
 
 # typescript
 *.tsbuildinfo
+
+# backup files
+*_backup.*
+*.backup
+*.bak
+
+# export/import files
+questions_export.*
+*_export.*
+
+# logs
+*.log
+logs/
+
+# temp files
+*.tmp
+*.temp
+temp/
+
+# IDE files
+.vscode/settings.json
+.idea/
+
+# cache
+.cache/
+*.cache

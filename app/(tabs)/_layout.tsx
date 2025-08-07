@@ -62,6 +62,18 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="results"
+        options={{
+          href: null, // Oculta del tab bar pero mantiene disponible
+        }}
+      />
+      <Tabs.Screen
+        name="summary"
+        options={{
+          href: null, // Oculta del tab bar pero mantiene disponible
+        }}
+      />
+      <Tabs.Screen
         name="free-mode"
         options={{
           href: null, // Oculta del tab bar pero mantiene disponible

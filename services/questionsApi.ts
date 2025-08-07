@@ -1,7 +1,8 @@
 import { Question } from '@/types/game';
+import { supabase } from './supabaseClient';
 // import { SAGA_API_NAMES } from '@/constants/sagas'; // 🔒 No necesario por ahora
 
-const QUESTIONS_DB: Question[] = [
+export const QUESTIONS_DB: Question[] = [
   // East Blue Questions 
   // ❌ ELIMINADA ID 1: "¿Cuál es el sueño de Luffy?" - Feedback: "el sueño de luffy es otra cosa"
   {
@@ -554,6 +555,169 @@ const QUESTIONS_DB: Question[] = [
     options: ['Ninguna es Correcta', 'Law', 'Caesar', 'Kin\'emon'],
     correct_answer: 'Ninguna es Correcta'
   },
+  // Water 7 Questions
+  {
+    id: 1001,
+    saga: 'water-7',
+    difficulty: 'easy',
+    question: '¿Cómo se llama el carpintero que se une a la tripulación en Water 7?',
+    options: ['Franky', 'Iceburg', 'Paulie', 'Kokoro'],
+    correct_answer: 'Franky'
+  },
+  {
+    id: 1002,
+    saga: 'water-7',
+    difficulty: 'easy',
+    question: '¿Cuál es el nombre del tren marino que conecta Water 7 con otras islas?',
+    options: ['Puffing Tom', 'Rocketman', 'Sea Train', 'Going Merry'],
+    correct_answer: 'Puffing Tom'
+  },
+  {
+    id: 1003,
+    saga: 'water-7',
+    difficulty: 'easy',
+    question: '¿Quién es la alcaldesa de Water 7?',
+    options: ['Iceburg', 'Franky', 'Kokoro', 'Paulie'],
+    correct_answer: 'Iceburg'
+  },
+  {
+    id: 1004,
+    saga: 'water-7',
+    difficulty: 'medium',
+    question: '¿Cómo se llama la organización secreta que ataca Water 7?',
+    options: ['CP9', 'Baroque Works', 'Revolucionarios', 'Marina'],
+    correct_answer: 'CP9'
+  },
+  {
+    id: 1005,
+    saga: 'water-7',
+    difficulty: 'medium',
+    question: '¿Qué le sucede al Going Merry en Water 7?',
+    options: ['Se rompe', 'Es robado', 'Es mejorado', 'Es vendido'],
+    correct_answer: 'Se rompe'
+  },
+  {
+    id: 1006,
+    saga: 'water-7',
+    difficulty: 'medium',
+    question: '¿Quién es el líder de la Galley-La Company?',
+    options: ['Iceburg', 'Franky', 'Paulie', 'Lucci'],
+    correct_answer: 'Iceburg'
+  },
+  {
+    id: 1007,
+    saga: 'water-7',
+    difficulty: 'hard',
+    question: '¿Cuál es el verdadero nombre de Franky?',
+    options: ['Cutty Flam', 'Tom', 'Paulie', 'Iceburg'],
+    correct_answer: 'Cutty Flam'
+  },
+  {
+    id: 1008,
+    saga: 'water-7',
+    difficulty: 'hard',
+    question: '¿Quién traiciona a Iceburg y revela ser miembro de CP9?',
+    options: ['Rob Lucci', 'Kaku', 'Kalifa', 'Todos los anteriores'],
+    correct_answer: 'Todos los anteriores'
+  },
+  {
+    id: 1009,
+    saga: 'water-7',
+    difficulty: 'hard',
+    question: '¿Qué objeto importante roba Robin en Water 7?',
+    options: ['Pluton blueprints', 'Poneglyph', 'Dials', 'Log Pose'],
+    correct_answer: 'Pluton blueprints'
+  },
+  {
+    id: 1010,
+    saga: 'water-7',
+    difficulty: 'medium',
+    question: '¿Cómo se llama la estación de tren de Water 7?',
+    options: ['Blue Station', 'Water Station', 'Dock 1', 'Galley-La Station'],
+    correct_answer: 'Blue Station'
+  },
+
+  // Thriller Bark Questions
+  {
+    id: 1101,
+    saga: 'thriller-bark',
+    difficulty: 'easy',
+    question: '¿Quién es el villano principal de Thriller Bark?',
+    options: ['Gecko Moria', 'Perona', 'Hogback', 'Absalom'],
+    correct_answer: 'Gecko Moria'
+  },
+  {
+    id: 1102,
+    saga: 'thriller-bark',
+    difficulty: 'easy',
+    question: '¿Qué poder tiene la fruta del diablo de Gecko Moria?',
+    options: ['Controlar sombras', 'Controlar fuego', 'Controlar hielo', 'Controlar animales'],
+    correct_answer: 'Controlar sombras'
+  },
+  {
+    id: 1103,
+    saga: 'thriller-bark',
+    difficulty: 'easy',
+    question: '¿Cómo se llama el esqueleto que se une a la tripulación en Thriller Bark?',
+    options: ['Brook', 'Franky', 'Robin', 'Chopper'],
+    correct_answer: 'Brook'
+  },
+  {
+    id: 1104,
+    saga: 'thriller-bark',
+    difficulty: 'medium',
+    question: '¿Quién es la princesa fantasma en Thriller Bark?',
+    options: ['Perona', 'Nami', 'Robin', 'Lola'],
+    correct_answer: 'Perona'
+  },
+  {
+    id: 1105,
+    saga: 'thriller-bark',
+    difficulty: 'medium',
+    question: '¿Qué le roba Gecko Moria a Luffy?',
+    options: ['Su sombra', 'Su sombrero', 'Su fuerza', 'Su fruta del diablo'],
+    correct_answer: 'Su sombra'
+  },
+  {
+    id: 1106,
+    saga: 'thriller-bark',
+    difficulty: 'medium',
+    question: '¿Cómo se llama el barco gigante de Thriller Bark?',
+    options: ['Thriller Bark', 'Sunny', 'Going Merry', 'Puffing Tom'],
+    correct_answer: 'Thriller Bark'
+  },
+  {
+    id: 1107,
+    saga: 'thriller-bark',
+    difficulty: 'hard',
+    question: '¿Quién es el científico loco de Thriller Bark?',
+    options: ['Hogback', 'Vegapunk', 'Caesar', 'Judge'],
+    correct_answer: 'Hogback'
+  },
+  {
+    id: 1108,
+    saga: 'thriller-bark',
+    difficulty: 'hard',
+    question: '¿Qué animal es el zombie número 900?',
+    options: ['Oars', 'Lola', 'Absalom', 'Ryuma'],
+    correct_answer: 'Oars'
+  },
+  {
+    id: 1109,
+    saga: 'thriller-bark',
+    difficulty: 'hard',
+    question: '¿Quién derrota a Perona en Thriller Bark?',
+    options: ['Usopp', 'Zoro', 'Sanji', 'Robin'],
+    correct_answer: 'Usopp'
+  },
+  {
+    id: 1110,
+    saga: 'thriller-bark',
+    difficulty: 'medium',
+    question: '¿Cómo se llama la técnica de Brook que usa para derrotar zombies?',
+    options: ['Soul Solid', 'Hanauta Sancho', 'Three-Sword Style', 'Gavotte Bond Avant'],
+    correct_answer: 'Soul Solid'
+  },
 ];
 
 export class QuestionsAPI {
@@ -708,45 +872,71 @@ export class QuestionsAPI {
     difficulty?: 'easy' | 'medium' | 'hard',
     isStoryMode: boolean = false
   ): Promise<Question[]> {
-    // 🔒 API EXTERNA TEMPORALMENTE DESHABILITADA
-    // TODO: Reactivar cuando la API esté mejorada
-    /*
-    // Primero intentar con la API externa
+    // Primero intentar obtener preguntas desde Supabase
     try {
-      if (!isStoryMode) {
-        // Para modo libre, usar directamente la API externa
-        const externalQuestions = await this.fetchFromExternalAPI(saga, amount, difficulty);
-        if (externalQuestions.length > 0) {
-          return externalQuestions;
-        }
-      }
-    } catch (error) {
-      console.log('🔄 API externa falló, usando preguntas locales como fallback');
-    }
-    */
+      let query = supabase
+        .from('questions')
+        .select('*');
 
-    // 📚 USANDO SOLO BASE DE DATOS LOCAL (más rápido y estable)
+      // Filtros por saga
+      if (!isStoryMode && (saga === 'all' || saga === '*' || saga === 'libre')) {
+        // No filtrar saga, traer todas
+      } else {
+        query = query.eq('saga', saga);
+      }
+
+      // Filtro por dificultad
+      if (difficulty) {
+        query = query.eq('difficulty', difficulty);
+      }
+
+      // Limitar cantidad
+      query = query.limit(amount);
+
+      const { data, error } = await query;
+      if (error) throw error;
+      if (data && data.length > 0) {
+        // Mapear opciones si vienen como string JSON
+        const questions: Question[] = data.map((q: any) => ({
+          ...q,
+          options: typeof q.options === 'string' ? JSON.parse(q.options) : q.options
+        }));
+
+        // Si es modo historia, aplicar patrón especial
+        if (isStoryMode && amount === 10) {
+          return this.getStoryModeQuestions(saga, questions);
+        }
+
+        // Mezclar opciones y devolver
+        return questions.map(q => this.shuffleOptions(q));
+      }
+    } catch (err) {
+      console.log('❌ Error al obtener preguntas de Supabase, usando local:', err);
+    }
+
+    // Fallback: usar base local
     console.log('📚 Usando base de datos local de preguntas');
     await new Promise(resolve => setTimeout(resolve, 300)); // Simular delay de API
 
-    // Mapear saga para compatibilidad con datos locales
-    const localSaga = saga === 'skypea' ? 'skypea' : saga; // Nuestros datos locales usan 'skypea'
-    let filteredQuestions = QUESTIONS_DB.filter(q => q.saga === localSaga);
-    
-    // Si es modo historia, usar configuración específica
+    let filteredQuestions: Question[];
+    if (!isStoryMode && (saga === 'all' || saga === '*' || saga === 'libre')) {
+      filteredQuestions = [...QUESTIONS_DB];
+    } else {
+      const localSaga = saga === 'skypea' ? 'skypea' : saga;
+      filteredQuestions = QUESTIONS_DB.filter(q => q.saga === localSaga);
+    }
+
     if (isStoryMode && amount === 10) {
+      const localSaga = saga === 'skypea' ? 'skypea' : saga;
       return this.getStoryModeQuestions(localSaga, filteredQuestions);
     }
-    
-    // Modo libre o configuración custom
+
     if (difficulty) {
       filteredQuestions = filteredQuestions.filter(q => q.difficulty === difficulty);
     }
 
-    // Shuffle y retornar la cantidad solicitada (con opciones mezcladas)
     const shuffled = filteredQuestions.sort(() => Math.random() - 0.5);
     const selected = shuffled.slice(0, Math.min(amount, shuffled.length));
-    
     return selected.map(q => this.shuffleOptions(q));
   }
 
@@ -790,6 +980,7 @@ export function verificarPreguntasPorSaga() {
   });
 }
 
+
 // Utilidad para mostrar preguntas por saga y dificultad
 export function resumenPreguntasPorSaga() {
   const config = QuestionsAPI.STORY_MODE_CONFIG;
@@ -804,4 +995,9 @@ export function resumenPreguntasPorSaga() {
       });
     });
   });
+}
+
+// --- DEBUG: Ejecutar verificación si se llama desde CLI ---
+if (require.main === module) {
+  verificarPreguntasPorSaga();
 }
