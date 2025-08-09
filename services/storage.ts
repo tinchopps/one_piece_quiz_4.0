@@ -3,18 +3,28 @@ import { SagaProgress, GameStats } from '@/types/game';
 import { SAGAS } from '@/constants/sagas';
 
 const STORAGE_KEYS = {
-  SAGA_PROGRESS: 'saga_progress',
+  SAGA_PROGRESS: 'saga_progress', // Modo Historia
+  CUSTOM_PROGRESS: 'custom_progress', // Modo Personalizado
   GAME_STATS: 'game_stats',
 };
 
 export class StorageService {
+
+  // Progreso de Modo Historia
   static async getSagasProgress(): Promise<SagaProgress[]> {
     try {
       const stored = await AsyncStorage.getItem(STORAGE_KEYS.SAGA_PROGRESS);
       if (stored) {
-        return JSON.parse(stored);
+        const storedSagas: SagaProgress[] = JSON.parse(stored);
+        const storedIds = new Set(storedSagas.map((s) => s.id));
+        const missingSagas = SAGAS.filter((s) => !storedIds.has(s.id));
+        if (missingSagas.length > 0) {
+          const updated = [...storedSagas, ...missingSagas];
+          await this.saveSagasProgress(updated);
+          return updated;
+        }
+        return storedSagas;
       }
-      // Return default sagas on first launch
       await this.saveSagasProgress(SAGAS);
       return SAGAS;
     } catch (error) {
@@ -37,7 +47,7 @@ export class StorageService {
   ): Promise<SagaProgress[]> {
     try {
       const sagas = await this.getSagasProgress();
-      const updatedSagas = sagas.map(saga => 
+      const updatedSagas = sagas.map(saga =>
         saga.id === sagaId ? { ...saga, ...updates } : saga
       );
       await this.saveSagasProgress(updatedSagas);
@@ -47,6 +57,55 @@ export class StorageService {
       return await this.getSagasProgress();
     }
   }
+
+  // Progreso de Modo Personalizado
+  static async getCustomProgress(): Promise<SagaProgress[]> {
+    try {
+      const stored = await AsyncStorage.getItem(STORAGE_KEYS.CUSTOM_PROGRESS);
+      if (stored) {
+        const storedSagas: SagaProgress[] = JSON.parse(stored);
+        const storedIds = new Set(storedSagas.map((s) => s.id));
+        const missingSagas = SAGAS.filter((s) => !storedIds.has(s.id));
+        if (missingSagas.length > 0) {
+          const updated = [...storedSagas, ...missingSagas];
+          await this.saveCustomProgress(updated);
+          return updated;
+        }
+        return storedSagas;
+      }
+      await this.saveCustomProgress(SAGAS);
+      return SAGAS;
+    } catch (error) {
+      console.error('Error loading custom progress:', error);
+      return SAGAS;
+    }
+  }
+
+  static async saveCustomProgress(sagas: SagaProgress[]): Promise<void> {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEYS.CUSTOM_PROGRESS, JSON.stringify(sagas));
+    } catch (error) {
+      console.error('Error saving custom progress:', error);
+    }
+  }
+
+  static async updateCustomProgress(
+    sagaId: string,
+    updates: Partial<SagaProgress>
+  ): Promise<SagaProgress[]> {
+    try {
+      const sagas = await this.getCustomProgress();
+      const updatedSagas = sagas.map(saga =>
+        saga.id === sagaId ? { ...saga, ...updates } : saga
+      );
+      await this.saveCustomProgress(updatedSagas);
+      return updatedSagas;
+    } catch (error) {
+      console.error('Error updating custom progress:', error);
+      return await this.getCustomProgress();
+    }
+  }
+
 
   static async getGameStats(): Promise<GameStats> {
     try {

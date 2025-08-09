@@ -43,6 +43,9 @@ yarn-error.*
 questions_export.*
 *_export.*
 
+# archivos de carga temporal
+PREGUNTAS_PARA_BASE_DE_DATOS.sql
+
 # logs
 *.log
 logs/

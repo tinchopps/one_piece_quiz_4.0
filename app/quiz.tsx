@@ -25,7 +25,18 @@ export default function QuizScreen() {
     difficulty: string;
   }>();
   
-  const { startGame, answerQuestion, nextQuestion, currentGame, updateSagaProgress, updateGameStats, unlockNextSaga } = useGame();
+  const {
+    startGame,
+    answerQuestion,
+    nextQuestion,
+    currentGame,
+    updateSagaProgress,
+    updateCustomProgress,
+    updateGameStats,
+    unlockNextSaga,
+    sagas,
+    customSagas,
+  } = useGame();
   
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
@@ -303,13 +314,28 @@ export default function QuizScreen() {
     const score = correctAnswersRef.current;
     const totalQuestions = questions.length;
 
-    // Update saga progress
-    await updateSagaProgress(params.sagaId, {
-      questionsAnswered: totalQuestions,
-      correctAnswers: score,
-      bestScore: Math.max(score, 0),
-      completed: score >= totalQuestions * 0.7, // 70% to complete
-    });
+    // Update progress depending on mode (story vs free)
+    if (params.mode === 'story') {
+      // conservar mejor puntuación por saga en modo historia
+      const current = sagas.find((s) => s.id === params.sagaId);
+      const prevBest = current?.bestScore ?? 0;
+      await updateSagaProgress(params.sagaId, {
+        questionsAnswered: totalQuestions,
+        correctAnswers: score,
+        bestScore: Math.max(prevBest, score),
+        completed: score >= totalQuestions * 0.7, // 70% to complete
+      });
+    } else {
+      // modo libre: actualizar progreso separado y no tocar el de historia
+      const currentCustom = customSagas.find((s) => s.id === params.sagaId);
+      const prevBestCustom = currentCustom?.bestScore ?? 0;
+      await updateCustomProgress(params.sagaId, {
+        questionsAnswered: totalQuestions,
+        correctAnswers: score,
+        bestScore: Math.max(prevBestCustom, score),
+        // En modo libre no marcamos "completed" ni desbloqueos
+      });
+    }
 
     // Update game stats
     await updateGameStats({
