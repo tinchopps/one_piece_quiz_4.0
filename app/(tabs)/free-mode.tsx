@@ -106,8 +106,16 @@ export default function FreeModeScreen() {
           {/* Saga Selection con animación */}
           <Animated.View style={{ transform: [{ translateY: card1Anim }], opacity: fadeAnim }}>
             <Card>
-              <Text style={styles.sectionTitle}>Selecciona una Saga</Text>
+              <Text style={styles.sectionTitle}>Selecciona una Saga (o Mixto)</Text>
               <View style={styles.optionsGrid}>
+                <Button
+                  key="all"
+                  title="Mixto"
+                  onPress={() => setSelectedSaga('all')}
+                  variant={selectedSaga === 'all' ? 'primary' : 'secondary'}
+                  size="medium"
+                  style={styles.optionButton}
+                />
                 {allSagas.map((saga) => (
                   <Button
                     key={saga.id}

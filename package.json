@@ -7,7 +7,8 @@
     "dev": "EXPO_NO_TELEMETRY=1 expo start",
     "build:web": "expo export --platform web",
     "postbuild:web": "copy public\\_redirects dist\\_redirects",
-    "lint": "expo lint"
+  "lint": "expo lint",
+  "debug:story": "ts-node ./scripts/debugStoryMode.ts"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.1",

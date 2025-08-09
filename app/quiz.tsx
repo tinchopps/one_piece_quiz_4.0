@@ -184,6 +184,12 @@ export default function QuizScreen() {
         return;
       }
 
+      // 🔍 Debug Story Mode: loggear distribución y orden (solo historia)
+      if (isStoryMode) {
+        const counts = loadedQuestions.reduce((acc: Record<string, number>, q) => { acc[q.difficulty] = (acc[q.difficulty]||0)+1; return acc; }, {} as Record<string, number>);
+        console.log(`[StoryMode][UI] saga=${params.sagaId} order=${loadedQuestions.map(q=>q.difficulty).join('>')} counts=${JSON.stringify(counts)}`);
+        console.log('[StoryMode][UI] IDs:', loadedQuestions.map(q=>`${q.id}:${q.difficulty}`).join(','));
+      }
       setQuestions(loadedQuestions);
       startGame(loadedQuestions);
       setQuestionStartTime(Date.now());

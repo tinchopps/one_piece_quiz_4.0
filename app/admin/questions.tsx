@@ -232,8 +232,13 @@ const AdminQuestions: React.FC = () => {
   const renderPagination = () => {
     if (totalPages <= 1) return null;
 
+    // Calcular el rango de páginas a mostrar
+    let start = Math.max(1, currentPage - 1);
+    let end = Math.min(totalPages, start + 2);
+    if (end - start < 2) start = Math.max(1, end - 2);
+
     const pages = [];
-    for (let i = 1; i <= totalPages; i++) {
+    for (let i = start; i <= end; i++) {
       pages.push(
         <TouchableOpacity
           key={i}
@@ -249,18 +254,32 @@ const AdminQuestions: React.FC = () => {
       <View style={styles.pagination}>
         <TouchableOpacity
           style={[styles.pageButton, currentPage === 1 && { opacity: 0.5 }]}
-          onPress={() => currentPage > 1 && goToPage(currentPage - 1)}
+          onPress={() => goToPage(1)}
           disabled={currentPage === 1}
         >
-          <Text style={styles.pageButtonText}>← Anterior</Text>
+          <Text style={styles.pageButtonText}>{'<<'}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.pageButton, currentPage === 1 && { opacity: 0.5 }]}
+          onPress={() => goToPage(currentPage - 1)}
+          disabled={currentPage === 1}
+        >
+          <Text style={styles.pageButtonText}>{'<'}</Text>
         </TouchableOpacity>
         <View style={styles.pageNumbers}>{pages}</View>
         <TouchableOpacity
           style={[styles.pageButton, currentPage === totalPages && { opacity: 0.5 }]}
-          onPress={() => currentPage < totalPages && goToPage(currentPage + 1)}
+          onPress={() => goToPage(currentPage + 1)}
           disabled={currentPage === totalPages}
         >
-          <Text style={styles.pageButtonText}>Siguiente →</Text>
+          <Text style={styles.pageButtonText}>{'>'}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.pageButton, currentPage === totalPages && { opacity: 0.5 }]}
+          onPress={() => goToPage(totalPages)}
+          disabled={currentPage === totalPages}
+        >
+          <Text style={styles.pageButtonText}>{'>>'}</Text>
         </TouchableOpacity>
       </View>
     );

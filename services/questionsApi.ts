@@ -720,6 +720,8 @@ export const QUESTIONS_DB: Question[] = [
   },
 ];
 
+// (Eliminada función duplicada de story mode; la lógica vive dentro de la clase QuestionsAPI)
+
 export class QuestionsAPI {
   // 🔒 API EXTERNA TEMPORALMENTE DESHABILITADA
   // private static readonly API_BASE_URL = 'https://trivia-one-piece-api.onrender.com';
@@ -812,58 +814,78 @@ export class QuestionsAPI {
     };
   }
 
-  // Función para obtener preguntas en modo historia con patrón específico
+  // Función para obtener preguntas en modo historia (distribución fija 4/3/3 con fallbacks)
   private static getStoryModeQuestions(
-    saga: string,
+    _saga: string,
     filteredQuestions: Question[]
   ): Question[] {
-    const config = this.STORY_MODE_CONFIG[saga as keyof typeof this.STORY_MODE_CONFIG];
-    if (!config) {
-      // Si no hay configuración específica, usar distribución balanceada
-      const shuffled = filteredQuestions.sort(() => Math.random() - 0.5);
-      return shuffled.slice(0, 10).map(q => this.shuffleOptions(q));
+    const TARGET = { easy: 4, medium: 3, hard: 3 } as const;
+
+    // Particionar por dificultad
+    const easyAll = filteredQuestions.filter(q => q.difficulty === 'easy');
+    const mediumAll = filteredQuestions.filter(q => q.difficulty === 'medium');
+    const hardAll = filteredQuestions.filter(q => q.difficulty === 'hard');
+
+  console.log(`[StoryMode] Pool saga=${_saga} -> easy=${easyAll.length} medium=${mediumAll.length} hard=${hardAll.length} total=${filteredQuestions.length}`);
+
+    const pick = (arr: Question[], n: number) => {
+      if (n <= 0) return [];
+      return [...arr].sort(() => Math.random() - 0.5).slice(0, Math.min(n, arr.length));
+    };
+
+    // Selección base
+    const baseEasy = pick(easyAll, TARGET.easy);
+    const baseMedium = pick(mediumAll, TARGET.medium);
+    const baseHard = pick(hardAll, TARGET.hard);
+
+    const usedIds = new Set<number>([...baseEasy, ...baseMedium, ...baseHard].map(q => q.id));
+    const fallback: Question[] = [];
+
+  console.log(`[StoryMode] Base picked -> easy=${baseEasy.length} medium=${baseMedium.length} hard=${baseHard.length}`);
+
+    // Fallback hard -> medium
+    const hardDeficit = TARGET.hard - baseHard.length;
+    if (hardDeficit > 0) {
+      const mediumRemaining = mediumAll.filter(q => !usedIds.has(q.id));
+      const extraMediumForHard = pick(mediumRemaining, hardDeficit);
+      extraMediumForHard.forEach(q => usedIds.add(q.id));
+      fallback.push(...extraMediumForHard);
+  console.log(`[StoryMode] Fallback hard→medium added=${extraMediumForHard.length}`);
     }
 
-    const easyQuestions = filteredQuestions.filter(q => q.difficulty === 'easy');
-    const mediumQuestions = filteredQuestions.filter(q => q.difficulty === 'medium');
-    const hardQuestions = filteredQuestions.filter(q => q.difficulty === 'hard');
-
-    // Verificar si tenemos suficientes preguntas de cada dificultad
-    const neededEasy = config.easy;
-    const neededMedium = config.medium;
-    const neededHard = config.hard;
-
-    // Si no hay suficientes preguntas, usar las disponibles y completar con otras
-    let selectedQuestions: Question[] = [];
-
-    // 1. Seleccionar preguntas fáciles (mezcladas aleatoriamente)
-    const shuffledEasy = easyQuestions.sort(() => Math.random() - 0.5);
-    const selectedEasy = shuffledEasy.slice(0, Math.min(neededEasy, shuffledEasy.length));
-    selectedQuestions.push(...selectedEasy);
-
-    // 2. Seleccionar preguntas medianas (mezcladas aleatoriamente)
-    const shuffledMedium = mediumQuestions.sort(() => Math.random() - 0.5);
-    const selectedMedium = shuffledMedium.slice(0, Math.min(neededMedium, shuffledMedium.length));
-    selectedQuestions.push(...selectedMedium);
-
-    // 3. Seleccionar preguntas difíciles (mezcladas aleatoriamente)
-    const shuffledHard = hardQuestions.sort(() => Math.random() - 0.5);
-    const selectedHard = shuffledHard.slice(0, Math.min(neededHard, shuffledHard.length));
-    selectedQuestions.push(...selectedHard);
-
-    // Si no llegamos a 10 preguntas, completar con preguntas restantes
-    if (selectedQuestions.length < 10) {
-      const usedIds = new Set(selectedQuestions.map(q => q.id));
-      const remainingQuestions = filteredQuestions
-        .filter(q => !usedIds.has(q.id))
-        .sort(() => Math.random() - 0.5);
-      
-      const needed = 10 - selectedQuestions.length;
-      selectedQuestions.push(...remainingQuestions.slice(0, needed));
+    // Fallback medium -> easy (después de posible consumo para hard)
+    const currentMediumCount = baseMedium.length; // no contamos los usados como fallback for hard en baseMedium
+    const mediumDeficit = TARGET.medium - currentMediumCount;
+    if (mediumDeficit > 0) {
+      const easyRemaining = easyAll.filter(q => !usedIds.has(q.id));
+      const extraEasyForMedium = pick(easyRemaining, mediumDeficit);
+      extraEasyForMedium.forEach(q => usedIds.add(q.id));
+      fallback.push(...extraEasyForMedium);
+  console.log(`[StoryMode] Fallback medium→easy added=${extraEasyForMedium.length}`);
     }
 
-    // Mezclar las opciones de cada pregunta y mantener el orden por dificultad
-    return selectedQuestions.slice(0, 10).map(q => this.shuffleOptions(q));
+    // Construir lista en orden: easy -> medium -> hard -> fallback
+    let ordered: Question[] = [...baseEasy, ...baseMedium, ...baseHard, ...fallback];
+
+    // Si aún no llegamos a 10, rellenar con restantes (sin repetir) manteniendo orden de dificultad ascendente
+    if (ordered.length < 10) {
+      const remainingEasy = easyAll.filter(q => !usedIds.has(q.id));
+      remainingEasy.forEach(q => usedIds.add(q.id));
+      const remainingMedium = mediumAll.filter(q => !usedIds.has(q.id));
+      remainingMedium.forEach(q => usedIds.add(q.id));
+      const remainingHard = hardAll.filter(q => !usedIds.has(q.id));
+
+      const remainingOrdered = [...remainingEasy, ...remainingMedium, ...remainingHard];
+      ordered = [...ordered, ...remainingOrdered.slice(0, 10 - ordered.length)];
+      console.log(`[StoryMode] Relleno final added=${Math.max(0, ordered.length - (baseEasy.length + baseMedium.length + baseHard.length + fallback.length))}`);
+    }
+
+    // Limitar a 10 y mezclar SOLO opciones internas, no el orden de las preguntas
+    const finalSet = ordered.slice(0, 10).map(q => this.shuffleOptions(q));
+    const finalCounts = finalSet.reduce((acc: Record<string, number>, q) => { acc[q.difficulty] = (acc[q.difficulty]||0)+1; return acc; }, {} as Record<string, number>);
+    console.log(`[StoryMode] Final counts -> easy=${finalCounts.easy||0} medium=${finalCounts.medium||0} hard=${finalCounts.hard||0}`);
+    console.log('[StoryMode] Order:', finalSet.map(q => q.difficulty).join(' > '));
+    return finalSet;
   }
 
   static async getQuestions(
@@ -891,7 +913,13 @@ export class QuestionsAPI {
       }
 
       // Limitar cantidad
-      query = query.limit(amount);
+      if (isStoryMode && amount === 10) {
+        // Para modo historia necesitamos un pool más grande para garantizar distribución.
+        const fetchLimit = parseInt(process.env.STORY_MODE_FETCH_LIMIT || '60', 10);
+        query = query.limit(fetchLimit);
+      } else {
+        query = query.limit(amount);
+      }
 
       const { data, error } = await query;
       if (error) throw error;
@@ -904,6 +932,7 @@ export class QuestionsAPI {
 
         // Si es modo historia, aplicar patrón especial
         if (isStoryMode && amount === 10) {
+          console.log(`[StoryMode] Supabase devolvió ${questions.length} preguntas para saga=${saga}`);
           return this.getStoryModeQuestions(saga, questions);
         }
 
