@@ -6,6 +6,7 @@ const STORAGE_KEYS = {
   SAGA_PROGRESS: 'saga_progress', // Modo Historia
   CUSTOM_PROGRESS: 'custom_progress', // Modo Personalizado
   GAME_STATS: 'game_stats',
+  USER_PROFILE: 'user_profile', // { username, userId }
 };
 
 export class StorageService {
@@ -151,6 +152,34 @@ export class StorageService {
     } catch (error) {
       console.error('Error updating game stats:', error);
       return await this.getGameStats();
+    }
+  }
+
+  // ================== USER PROFILE ==================
+  static async getUserProfile(): Promise<{ username: string; userId: string } | null> {
+    try {
+      const stored = await AsyncStorage.getItem(STORAGE_KEYS.USER_PROFILE);
+      if (!stored) return null;
+      return JSON.parse(stored);
+    } catch (error) {
+      console.error('Error loading user profile:', error);
+      return null;
+    }
+  }
+
+  static async saveUserProfile(profile: { username: string; userId: string }): Promise<void> {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEYS.USER_PROFILE, JSON.stringify(profile));
+    } catch (error) {
+      console.error('Error saving user profile:', error);
+    }
+  }
+
+  static async clearUserProfile(): Promise<void> {
+    try {
+      await AsyncStorage.removeItem(STORAGE_KEYS.USER_PROFILE);
+    } catch (error) {
+      console.error('Error clearing user profile:', error);
     }
   }
 }

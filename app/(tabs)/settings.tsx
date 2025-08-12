@@ -8,6 +8,9 @@ import {
   SafeAreaView,
   Alert,
   Switch,
+  Modal,
+  TextInput,
+  Pressable,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -18,6 +21,7 @@ import { useRouter } from 'expo-router';
 import { Card } from '@/components/ui/Card';
 import { FeedbackViewer } from '@/components/FeedbackViewer';
 import { useGame } from '@/context/GameContext';
+import { RankingService } from '@/services/supabaseClient';
 import { StorageService } from '@/services/storage';
 import { SAGAS } from '@/constants/sagas';
 
@@ -26,8 +30,13 @@ import { ActivityIndicator } from 'react-native';
 
 export default function SettingsScreen() {
   const gameContext = useGame();
+  const { username, userId, setUserProfile, clearUserProfile } = gameContext;
   const [showFeedbackViewer, setShowFeedbackViewer] = useState(false);
   const [feedbackEnabled, setFeedbackEnabled] = useState(false);
+  const [showUsernameModal, setShowUsernameModal] = useState(false);
+  const [newUsername, setNewUsername] = useState('');
+  const [usernameError, setUsernameError] = useState<string | null>(null);
+  const [savingUsername, setSavingUsername] = useState(false);
   const { user, logout, loading } = useAuth();
   const router = useRouter();
 
@@ -79,6 +88,36 @@ export default function SettingsScreen() {
     setShowFeedbackViewer(true);
   };
 
+  const validateUsername = (value: string) => {
+    if (value.length < 3 || value.length > 16) return '3-16 caracteres';
+    if (!/^[_A-Za-z0-9]+$/.test(value)) return 'Solo letras, números y _';
+    return null;
+  };
+
+  const handleSaveUsername = async () => {
+    const clean = newUsername.trim();
+    const err = validateUsername(clean);
+    setUsernameError(err);
+    if (err) return;
+    try {
+      setSavingUsername(true);
+      const row = await RankingService.getOrCreateUser(clean);
+      await setUserProfile(clean, row.id);
+      setShowUsernameModal(false);
+    } catch (e: any) {
+      setUsernameError(e.message || 'Error');
+    } finally {
+      setSavingUsername(false);
+    }
+  };
+
+  const handleClearUsername = async () => {
+    Alert.alert('Eliminar nombre', '¿Seguro que quieres eliminar tu nombre y desaparecer del ranking? (No borra registros ya existentes)', [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Eliminar', style: 'destructive', onPress: async () => { await clearUserProfile(); } }
+    ]);
+  };
+
   const handleLoginPress = () => {
     router.push('/login');
   };
@@ -115,7 +154,7 @@ export default function SettingsScreen() {
             </View>
             <View style={styles.infoItem}>
               <Text style={styles.infoLabel}>Desarrollado por:</Text>
-              <Text style={styles.infoValue}>Trivia Nakama Team</Text>
+              <Text style={styles.infoValue}>Tinchopps</Text>
             </View>
             <View style={styles.infoItem}>
               <Text style={styles.infoLabel}>Tema:</Text>
@@ -126,6 +165,21 @@ export default function SettingsScreen() {
           {/* Game Settings */}
           <Card>
             <Text style={styles.cardTitle}>Configuración del Juego</Text>
+            <View style={styles.usernameBox}>
+              <Text style={styles.usernameTitle}>Nombre en Ranking</Text>
+              {username ? (
+                <View style={styles.usernameRow}>
+                  <Text style={styles.currentUsername}>{username}</Text>
+                  <View style={{ flexDirection: 'row', gap: 8 }}>
+                    <Button title="Cambiar" size="small" variant="primary" onPress={() => { setNewUsername(username); setShowUsernameModal(true); }} />
+                    <Button title="Quitar" size="small" variant="danger" onPress={handleClearUsername} />
+                  </View>
+                </View>
+              ) : (
+                <Button title="Configurar Nombre" size="small" variant="primary" onPress={() => { setNewUsername(''); setShowUsernameModal(true); }} />
+              )}
+              <Text style={styles.usernameHint}>Visible públicamente. Único global. Cambiarlo no migra puntajes previos en el backend (placeholder).</Text>
+            </View>
             <View style={styles.switchRow}>
               <Text style={styles.switchLabel}>Activar feedback después de cada pregunta</Text>
               <Switch
@@ -237,6 +291,27 @@ export default function SettingsScreen() {
         visible={showFeedbackViewer}
         onClose={() => setShowFeedbackViewer(false)}
       />
+      <Modal visible={showUsernameModal} transparent animationType="fade">
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>{username ? 'Cambiar nombre' : 'Configurar nombre'}</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="NuevoNombre"
+              placeholderTextColor="#888"
+              value={newUsername}
+              autoCapitalize="none"
+              onChangeText={(t) => { setNewUsername(t); if (usernameError) setUsernameError(null); }}
+              maxLength={16}
+            />
+            {usernameError && <Text style={styles.errorText}>{usernameError}</Text>}
+            <View style={styles.modalButtons}>
+              <Button title={savingUsername ? 'Guardando...' : 'Guardar'} variant="primary" size="medium" onPress={handleSaveUsername} disabled={savingUsername} />
+              <Button title="Cancelar" variant="secondary" size="medium" onPress={() => setShowUsernameModal(false)} disabled={savingUsername} />
+            </View>
+          </View>
+        </View>
+      </Modal>
     </LinearGradient>
   );
 }
@@ -333,4 +408,15 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontStyle: 'italic',
   },
+  usernameBox: { marginBottom: 20 },
+  usernameTitle: { fontSize: 14, fontFamily: 'Inter-SemiBold', color: Colors.primary, marginBottom: 6 },
+  usernameRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
+  currentUsername: { fontSize: 14, fontFamily: 'Inter-Bold', color: Colors.secondary },
+  usernameHint: { fontSize: 11, fontFamily: 'Inter-Regular', color: Colors.text.secondary, marginTop: 4 },
+  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', padding: 24 },
+  modalContent: { backgroundColor: '#1e1e1e', borderRadius: 12, padding: 20 },
+  modalTitle: { fontSize: 20, fontFamily: 'Inter-Bold', color: Colors.secondary, marginBottom: 12, textAlign: 'center' },
+  input: { backgroundColor: '#2a2a2a', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, color: '#fff', fontFamily: 'Inter-Regular', marginBottom: 8, borderWidth: 1, borderColor: '#444' },
+  errorText: { color: Colors.error, fontSize: 12, fontFamily: 'Inter-SemiBold', marginBottom: 4, textAlign: 'center' },
+  modalButtons: { flexDirection: 'row', gap: 12, justifyContent: 'center', marginTop: 4 },
 });

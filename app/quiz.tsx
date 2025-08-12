@@ -13,6 +13,7 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { FeedbackOverlay } from '@/components/ui/FeedbackOverlay';
 import { Colors, gradients } from '@/constants/colors';
 import { QuestionsAPI } from '@/services/questionsApi';
+import { RankingService } from '@/services/supabaseClient';
 import { APIWarmingService } from '@/services/apiWarming';
 import { useGame } from '@/context/GameContext';
 import { Question, QuizResult } from '@/types/game';
@@ -33,9 +34,11 @@ export default function QuizScreen() {
     updateSagaProgress,
     updateCustomProgress,
     updateGameStats,
-    unlockNextSaga,
+  unlockNextSaga,
     sagas,
     customSagas,
+  username,
+  userId,
   } = useGame();
   
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -357,6 +360,29 @@ export default function QuizScreen() {
       await unlockNextSaga(params.sagaId);
     }
 
+    // Actualizar ranking global
+    try {
+      if (userId) {
+        if (params.mode === 'free') {
+          const eligible = params.sagaId === 'all' && parseInt(params.amount) === 10 && params.difficulty === 'mixed';
+            if (eligible) {
+              await RankingService.updateBestScore(userId, 'free', score);
+              console.log('[Ranking] Free mode score sync OK', { username, score });
+            } else {
+              console.log('[Ranking] Free mode partida no elegible para ranking', params);
+            }
+        } else if (params.mode === 'story') {
+          // Estrategia inicial: tomar la mejor puntuación individual de una saga (puede refinarse a agregada más adelante)
+          await RankingService.updateBestScore(userId, 'story', score);
+          console.log('[Ranking] Story mode score sync OK', { username, saga: params.sagaId, score });
+        }
+      } else {
+        console.log('[Ranking] Usuario sin perfil, no se sincroniza score');
+      }
+    } catch (err) {
+      console.warn('[Ranking] Error al sincronizar score', (err as any)?.message);
+    }
+
     // Navigate to results
     router.push({
       pathname: '/results',
@@ -366,6 +392,7 @@ export default function QuizScreen() {
         mode: params.mode,
         sagaId: params.sagaId,
         timeSpent: totalTime.toString(),
+  rankingEligible: (params.mode === 'free' && params.sagaId === 'all' && parseInt(params.amount) === 10 && params.difficulty === 'mixed') ? '1' : '0'
       },
     });
     

@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { Chrome as Home, BarChart3, Settings } from 'lucide-react-native';
+import { Chrome as Home, BarChart3, Settings, Trophy } from 'lucide-react-native';
 import { Colors } from '@/constants/colors';
 
 export default function TabLayout() {
@@ -43,6 +43,15 @@ export default function TabLayout() {
           title: 'Progreso',
           tabBarIcon: ({ size, color }) => (
             <BarChart3 size={size} color={color} strokeWidth={2} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="ranking"
+        options={{
+          title: 'Ranking',
+          tabBarIcon: ({ size, color }) => (
+            <Trophy size={size} color={color} strokeWidth={2} />
           ),
         }}
       />

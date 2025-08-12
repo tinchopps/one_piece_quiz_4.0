@@ -461,7 +461,7 @@ export function FeedbackViewer({ visible, onClose }: FeedbackViewerProps) {
               {/* Footer */}
               <View style={styles.footer}>
                 <Text style={styles.footerText}>
-                  "Un hombre sueña, un hombre muere, pero los sueños no mueren." - Hiluluk
+                  "Deja de llorar por lo que perdiste y fíjate en lo que todavía tienes." - Jinbe
                 </Text>
               </View>
             </ScrollView>

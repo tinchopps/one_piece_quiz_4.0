@@ -11,6 +11,8 @@ interface GameContextState {
   gameStats: GameStats;
   currentGame: GameState | null;
   loading: boolean;
+  username: string | null;
+  userId: string | null;
 }
 
 interface GameContextActions {
@@ -23,6 +25,8 @@ interface GameContextActions {
   nextQuestion: () => void;
   endGame: () => void;
   unlockNextSaga: (currentSagaId: string) => Promise<void>;
+  setUserProfile: (username: string, userId: string) => Promise<void>;
+  clearUserProfile: () => Promise<void>;
 }
 
 type GameContextType = GameContextState & GameContextActions & {
@@ -39,7 +43,9 @@ type GameAction =
   | { type: 'START_GAME'; payload: any[] }
   | { type: 'ANSWER_QUESTION'; payload: QuizResult }
   | { type: 'NEXT_QUESTION' }
-  | { type: 'END_GAME' };
+  | { type: 'END_GAME' }
+  | { type: 'SET_USER_PROFILE'; payload: { username: string; userId: string } }
+  | { type: 'CLEAR_USER_PROFILE' };
 
 const gameReducer = (state: GameContextState, action: GameAction): GameContextState => {
   switch (action.type) {
@@ -92,6 +98,10 @@ const gameReducer = (state: GameContextState, action: GameAction): GameContextSt
       };
     case 'END_GAME':
       return { ...state, currentGame: null };
+    case 'SET_USER_PROFILE':
+      return { ...state, username: action.payload.username, userId: action.payload.userId };
+    case 'CLEAR_USER_PROFILE':
+      return { ...state, username: null, userId: null };
     default:
       return state;
   }
@@ -110,6 +120,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     },
     currentGame: null,
     loading: true,
+  username: null,
+  userId: null,
   });
 
   const loadData = async () => {
@@ -123,6 +135,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       dispatch({ type: 'SET_SAGAS', payload: sagas });
       dispatch({ type: 'SET_CUSTOM_SAGAS', payload: customSagas });
       dispatch({ type: 'SET_GAME_STATS', payload: stats });
+      const profile = await StorageService.getUserProfile();
+      if (profile) {
+        dispatch({ type: 'SET_USER_PROFILE', payload: profile });
+      }
     } catch (error) {
       console.error('Error loading game data:', error);
     } finally {
@@ -183,6 +199,16 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const setUserProfile = async (username: string, userId: string) => {
+    await StorageService.saveUserProfile({ username, userId });
+    dispatch({ type: 'SET_USER_PROFILE', payload: { username, userId } });
+  };
+
+  const clearUserProfile = async () => {
+    await StorageService.clearUserProfile();
+    dispatch({ type: 'CLEAR_USER_PROFILE' });
+  };
+
   useEffect(() => {
     loadData();
   }, []);
@@ -211,6 +237,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     nextQuestion,
     endGame,
     unlockNextSaga,
+  setUserProfile,
+  clearUserProfile,
     lastRoundAnswers,
   };
 

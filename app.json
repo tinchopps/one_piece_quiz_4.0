@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "One Piece Quiz by tinchopps beta",
-    "slug": "one-piece-quiz-tinchopps-beta",
+    "name": "Trivia-Nakama",
+    "slug": "Trivia-Nakama",
     "version": "4.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",

@@ -912,9 +912,10 @@ export class QuestionsAPI {
         query = query.eq('difficulty', difficulty);
       }
 
-      // Limitar cantidad
-      if (isStoryMode && amount === 10) {
-        // Para modo historia necesitamos un pool más grande para garantizar distribución.
+      // Limitar cantidad (necesitamos pools más grandes para distribuciones especiales)
+      const needsStoryDistribution = isStoryMode && amount === 10;
+      const needsFreeMixedDistribution = !isStoryMode && amount === 10 && !difficulty; // dificultad 'mixed' -> undefined en llamada
+      if (needsStoryDistribution || needsFreeMixedDistribution) {
         const fetchLimit = parseInt(process.env.STORY_MODE_FETCH_LIMIT || '60', 10);
         query = query.limit(fetchLimit);
       } else {
@@ -934,6 +935,11 @@ export class QuestionsAPI {
         if (isStoryMode && amount === 10) {
           console.log(`[StoryMode] Supabase devolvió ${questions.length} preguntas para saga=${saga}`);
           return this.getStoryModeQuestions(saga, questions);
+        }
+
+        // MODO LIBRE: distribución fija 3/3/4 para mixto (amount 10)
+        if (!isStoryMode && amount === 10 && !difficulty) {
+          return this.getFreeModeMixedDistribution(questions, amount);
         }
 
         // Mezclar opciones y devolver
@@ -958,6 +964,11 @@ export class QuestionsAPI {
     if (isStoryMode && amount === 10) {
       const localSaga = saga === 'skypea' ? 'skypea' : saga;
       return this.getStoryModeQuestions(localSaga, filteredQuestions);
+    }
+
+    // Free mode mixto (difficulty undefined) amount 10
+    if (!isStoryMode && amount === 10 && !difficulty) {
+      return this.getFreeModeMixedDistribution(filteredQuestions, amount);
     }
 
     if (difficulty) {
@@ -990,6 +1001,46 @@ export class QuestionsAPI {
 
   static getQuestionsCount(saga: string): number {
     return QUESTIONS_DB.filter(q => q.saga === saga).length;
+  }
+  // Método privado para distribución Mixto Libre 3/3/4
+  private static getFreeModeMixedDistribution(all: Question[], amount: number): Question[] {
+    const TARGET = { easy: 3, medium: 3, hard: 4 } as const;
+    const easyAll = all.filter(q => q.difficulty === 'easy');
+    const mediumAll = all.filter(q => q.difficulty === 'medium');
+    const hardAll = all.filter(q => q.difficulty === 'hard');
+
+    const pick = (arr: Question[], n: number) => [...arr].sort(() => Math.random() - 0.5).slice(0, Math.min(n, arr.length));
+
+    const baseEasy = pick(easyAll, TARGET.easy);
+    const baseMedium = pick(mediumAll, TARGET.medium);
+    const baseHard = pick(hardAll, TARGET.hard);
+
+    const usedIds = new Set<number>([...baseEasy, ...baseMedium, ...baseHard].map(q => q.id));
+    let collected: Question[] = [...baseEasy, ...baseMedium, ...baseHard];
+
+    // Relleno si falta
+    const deficit = amount - collected.length;
+    if (deficit > 0) {
+      const remaining = all.filter(q => !usedIds.has(q.id));
+      const difficultyCount: Record<string, number> = { easy: baseEasy.length, medium: baseMedium.length, hard: baseHard.length };
+      const scoreFor = (q: Question) => {
+        const target = (TARGET as any)[q.difficulty] || 0;
+        const current = difficultyCount[q.difficulty] || 0;
+        return (target - current);
+      };
+      const orderedRemaining = [...remaining].sort((a,b) => scoreFor(b) - scoreFor(a));
+      for (const q of orderedRemaining) {
+        if (collected.length >= amount) break;
+        collected.push(q);
+        usedIds.add(q.id);
+        difficultyCount[q.difficulty] = (difficultyCount[q.difficulty]||0)+1;
+      }
+    }
+
+    collected = [...collected].sort(() => Math.random() - 0.5).slice(0, amount);
+    const counts = collected.reduce((acc: Record<string, number>, q) => { acc[q.difficulty] = (acc[q.difficulty]||0)+1; return acc; }, {} as Record<string, number>);
+    console.log(`[FreeMixed] Final counts -> easy=${counts.easy||0} medium=${counts.medium||0} hard=${counts.hard||0} (target 3/3/4)`);
+    return collected.map(q => this.shuffleOptions(q));
   }
 }
 
