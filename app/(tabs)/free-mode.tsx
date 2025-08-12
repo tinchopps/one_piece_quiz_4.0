@@ -21,6 +21,7 @@ export default function FreeModeScreen() {
   const [desiredUsername, setDesiredUsername] = useState('');
   const [usernameError, setUsernameError] = useState<string | null>(null);
   const [savingUsername, setSavingUsername] = useState(false);
+  const [pendingStart, setPendingStart] = useState(false);
 
   // Animaciones
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -96,6 +97,11 @@ export default function FreeModeScreen() {
       const userRow = await RankingService.getOrCreateUser(clean);
       await setUserProfile(clean, userRow.id);
       setShowUsernameModal(false);
+      // Si veníamos de intentar iniciar juego, continuar ahora
+      if (pendingStart) {
+        setPendingStart(false);
+        proceedToGame();
+      }
     } catch (e: any) {
       setUsernameError(e.message || 'Error al guardar');
     } finally {
@@ -103,9 +109,7 @@ export default function FreeModeScreen() {
     }
   };
 
-  const handleStartGame = () => {
-    if (!selectedSaga) return;
-
+  const proceedToGame = () => {
     router.push({
       pathname: '/quiz',
       params: {
@@ -115,6 +119,17 @@ export default function FreeModeScreen() {
         difficulty: selectedDifficulty,
       },
     });
+  };
+
+  const handleStartGame = () => {
+    if (!selectedSaga) return;
+    // Si no hay username, pedirlo antes de iniciar (con opción de saltar)
+    if (!username) {
+      setPendingStart(true);
+      setShowUsernameModal(true);
+      return;
+    }
+    proceedToGame();
   };
 
   return (
@@ -285,8 +300,16 @@ export default function FreeModeScreen() {
                   disabled={savingUsername}
                 />
                 <Button
-                  title={username ? 'Cerrar' : 'Más tarde'}
-                  onPress={() => { if (username) setShowUsernameModal(false); else setShowUsernameModal(false); }}
+                  title={pendingStart ? 'Saltar por ahora' : (username ? 'Cerrar' : 'Más tarde')}
+                  onPress={() => {
+                    if (pendingStart) {
+                      setShowUsernameModal(false);
+                      setPendingStart(false);
+                      proceedToGame();
+                    } else {
+                      setShowUsernameModal(false);
+                    }
+                  }}
                   variant="secondary"
                   size="medium"
                   disabled={savingUsername}
@@ -408,9 +431,10 @@ const styles = StyleSheet.create({
   },
   chooseUsernameLink: {
     fontSize: 12,
-    fontFamily: 'Inter-Medium',
-    color: Colors.secondary,
-    textAlign: 'center'
+  fontFamily: 'Inter-Bold',
+  color: Colors.error,
+  textAlign: 'center',
+  textDecorationLine: 'underline'
   },
   modalBackdrop: {
     flex: 1,

@@ -85,7 +85,7 @@ export default function RankingScreen() {
               : 'Mejor puntuación por saga (temporal).'}
           </Text>
           {!username && (
-            <Text style={styles.noteText}>Configura un nombre en Modo Libre para aparecer aquí.</Text>
+            <Text style={styles.noteText}>Configura un nombre en Ajustes o Modo Personalizado para aparecer aquí.</Text>
           )}
         </Card>
 

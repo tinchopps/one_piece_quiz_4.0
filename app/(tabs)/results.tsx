@@ -28,7 +28,7 @@ export default function ResultsScreen() {
     timeSpent: string;
   }>();
 
-  const { sagas, endGame } = useGame();
+  const { sagas, endGame, username } = useGame();
   const scale = useSharedValue(0);
   const opacity = useSharedValue(0);
 
@@ -97,7 +97,7 @@ export default function ResultsScreen() {
   };
 
   return (
-    <LinearGradient colors={gradients.pirate} style={styles.container}>
+  <LinearGradient colors={gradients.pirate as any} style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           {/* Header */}
@@ -112,7 +112,7 @@ export default function ResultsScreen() {
           </Animated.View>
 
           {/* Score Card */}
-          <Card style={[styles.scoreCard, isPass ? styles.passCard : styles.failCard]}>
+          <Card style={[styles.scoreCard, isPass ? styles.passCard : styles.failCard] as any}>
             <View style={styles.scoreHeader}>
               <Trophy size={32} color={isPass ? Colors.success : Colors.warning} />
               <Text style={styles.scoreText}>
@@ -129,6 +129,15 @@ export default function ResultsScreen() {
               {getPerformanceMessage()}
             </Text>
           </Card>
+
+          {/* Ranking eligibility notice when username is missing */}
+          {!username && (
+            <Card>
+              <Text style={styles.rankingNotice}>
+                Esta partida no participará en el ranking global porque no configuraste tu nombre. Ve a Ajustes para definirlo.
+              </Text>
+            </Card>
+          )}
 
           {/* Stats */}
           <Card>
@@ -310,5 +319,11 @@ const styles = StyleSheet.create({
     color: Colors.secondary,
     textAlign: 'center',
     fontStyle: 'italic',
+  },
+  rankingNotice: {
+    fontSize: 12,
+    fontFamily: 'Inter-SemiBold',
+    color: Colors.error,
+    textAlign: 'center',
   },
 });

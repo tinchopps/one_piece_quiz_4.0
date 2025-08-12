@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, TextInput, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -12,21 +12,46 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { Colors, gradients } from '@/constants/colors';
 import { SAGA_EMOJIS } from '@/constants/sagas';
 import { useGame } from '@/context/GameContext';
+import { RankingService } from '@/services/supabaseClient';
 
 export default function StoryScreen() {
-  const { sagas, loading } = useGame();
+  const { sagas, loading, username, setUserProfile } = useGame();
 
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <LoadingSpinner size={40} />
-      </View>
-    );
-  }
+  const [showUsernameModal, setShowUsernameModal] = useState(false);
+  const [desiredUsername, setDesiredUsername] = useState('');
+  const [usernameError, setUsernameError] = useState<string | null>(null);
+  const [savingUsername, setSavingUsername] = useState(false);
+  const [pendingSagaId, setPendingSagaId] = useState<string | null>(null);
 
-  const handleSagaPress = (sagaId: string, unlocked: boolean) => {
-    if (!unlocked) return;
-    
+  const validateUsername = (value: string) => {
+    if (value.length < 3 || value.length > 16) return '3-16 caracteres';
+    if (!/^[_A-Za-z0-9]+$/.test(value)) return 'Solo letras, números y _';
+    return null;
+  };
+
+  const submitUsername = async () => {
+    const err = validateUsername(desiredUsername.trim());
+    setUsernameError(err);
+    if (err) return;
+    try {
+      setSavingUsername(true);
+      const clean = desiredUsername.trim();
+      const userRow = await RankingService.getOrCreateUser(clean);
+      await setUserProfile(clean, userRow.id);
+      setShowUsernameModal(false);
+      if (pendingSagaId) {
+        const sid = pendingSagaId;
+        setPendingSagaId(null);
+        proceedToGame(sid);
+      }
+    } catch (e: any) {
+      setUsernameError(e.message || 'Error al guardar');
+    } finally {
+      setSavingUsername(false);
+    }
+  };
+
+  const proceedToGame = (sagaId: string) => {
     router.push({
       pathname: '/quiz',
       params: { 
@@ -38,8 +63,26 @@ export default function StoryScreen() {
     });
   };
 
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <LoadingSpinner size={40} />
+      </View>
+    );
+  }
+
+  const handleSagaPress = (sagaId: string, unlocked: boolean) => {
+    if (!unlocked) return;
+    if (!username) {
+      setPendingSagaId(sagaId);
+      setShowUsernameModal(true);
+      return;
+    }
+    proceedToGame(sagaId);
+  };
+
   return (
-    <LinearGradient colors={gradients.pirate} style={styles.container}>
+  <LinearGradient colors={gradients.pirate as any} style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           {/* Header */}
@@ -66,7 +109,7 @@ export default function StoryScreen() {
                     styles.sagaCard,
                     !saga.unlocked && styles.lockedCard,
                     saga.completed && styles.completedCard,
-                  ]}>
+                  ] as any}>
                     <View style={styles.sagaHeader}>
                       <View style={styles.sagaInfo}>
                         <Text style={styles.sagaEmoji}>
@@ -153,6 +196,51 @@ export default function StoryScreen() {
           </View>
         </ScrollView>
       </SafeAreaView>
+      {/* Username Modal */}
+      <Modal visible={showUsernameModal} transparent animationType="fade">
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Elige tu nombre</Text>
+            <Text style={styles.modalSubtitle}>Será público en los rankings. No podrás reclamar nombres ajenos.</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Pirata_123"
+              placeholderTextColor="#888"
+              value={desiredUsername}
+              autoCapitalize="none"
+              onChangeText={(t) => { setDesiredUsername(t); if (usernameError) setUsernameError(null); }}
+              maxLength={16}
+            />
+            {usernameError && <Text style={styles.errorText}>{usernameError}</Text>}
+            <View style={styles.modalButtons}>
+              <Button
+                title="Guardar"
+                onPress={submitUsername}
+                variant="primary"
+                size="medium"
+                disabled={savingUsername}
+              />
+              <Button
+                title={pendingSagaId ? 'Saltar por ahora' : (username ? 'Cerrar' : 'Más tarde')}
+                onPress={() => {
+                  if (pendingSagaId) {
+                    const sid = pendingSagaId;
+                    setShowUsernameModal(false);
+                    setPendingSagaId(null);
+                    proceedToGame(sid);
+                  } else {
+                    setShowUsernameModal(false);
+                  }
+                }}
+                variant="secondary"
+                size="medium"
+                disabled={savingUsername}
+              />
+            </View>
+            {savingUsername && <ActivityIndicator style={{ marginTop: 12 }} color={Colors.primary} />}
+          </View>
+        </View>
+      </Modal>
     </LinearGradient>
   );
 }
@@ -287,4 +375,53 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontStyle: 'italic',
   },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  modalContent: {
+    backgroundColor: '#1e1e1e',
+    borderRadius: 12,
+    padding: 20,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontFamily: 'Inter-Bold',
+    color: Colors.secondary,
+    marginBottom: 8,
+    textAlign: 'center'
+  },
+  modalSubtitle: {
+    fontSize: 12,
+    fontFamily: 'Inter-Regular',
+    color: Colors.text.secondary,
+    marginBottom: 12,
+    textAlign: 'center'
+  },
+  input: {
+    backgroundColor: '#2a2a2a',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    color: '#fff',
+    fontFamily: 'Inter-Regular',
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#444'
+  },
+  errorText: {
+    color: Colors.error,
+    fontSize: 12,
+    fontFamily: 'Inter-SemiBold',
+    marginBottom: 4,
+    textAlign: 'center'
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    justifyContent: 'center',
+    marginTop: 4
+  }
 });
